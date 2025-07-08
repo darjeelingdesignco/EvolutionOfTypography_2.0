@@ -10,15 +10,13 @@
   <body>
       <div id="unity-container" class="unity-desktop" style="width: 100%; height: 100%; background-color: darkgray!important">
           <canvas id="unity-canvas" width="auto" height="auto" tabindex="-1"></canvas>
-          <!-- <div id="unity-loading-bar">
+          <!--<div id="unity-loading-bar">
               <div id="unity-logo"></div>
               <div id="unity-progress-bar-empty">
                   <div id="unity-progress-bar-full"></div>
               </div>
-    <div id="unity-loading-text">Loading: 0%</div>
-          </div> -->
+          </div>-->
           
-          <div id="unity-loading-text">Loading: 0%</div>
           <div id="unity-warning"> </div>
          <!-- <button id="screenshot" type="button">Save...</button>-->
           <!-- <div id="unity-footer">
@@ -27,12 +25,13 @@
         <div id="unity-build-title">EvolutionOfTypography</div>
     </div>-->
       </div>
-      
       <script>
 
       var container = document.querySelector("#unity-container");
       var canvas = document.querySelector("#unity-canvas");
-      var loadingText = document.querySelector("#unity-loading-text");
+      //var loadingBar = document.querySelector("#unity-loading-bar");
+      //var progressBarFull = document.querySelector("#unity-progress-bar-full");
+      //var fullscreenButton = document.querySelector("#unity-fullscreen-button");
       var warningBanner = document.querySelector("#unity-warning");
 
       // Shows a temporary message banner/ribbon for a few seconds, or
@@ -101,18 +100,14 @@
           canvas.style.height = "100%";
       }
 
-
-       config.onProgress = function(unityInstance, progress) {
-    loadingText.innerText = "Loading: " + Math.round(progress * 100) + "%";
-  };
+      //loadingBar.style.display = "block";
 
       var script = document.createElement("script");
       script.src = loaderUrl;
       script.onload = () => {
         createUnityInstance(canvas, config).then((unityInstance) => {
             window.unityInstance = unityInstance;
-              loadingText.style.display = "none";
-
+                //loadingBar.style.display = "none";
                 /*fullscreenButton.onclick = () => {
                   unityInstance.SetFullscreen(1);
                 };*/
