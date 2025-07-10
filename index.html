@@ -76,61 +76,34 @@
       canvas.style.height = "100%";
     }
 
-    function updateFlipCounter(progress) {
-      const count = Math.round(progress * 100);
-      const padded = count.toString().padStart(3, '0');
-      padded.split('').forEach((digit, i) => {
-        const el = document.getElementById(`digit${i + 1}`);
-        const span = el.querySelector('span');
-        if (span.textContent !== digit) {
-          span.textContent = digit;
-          el.classList.remove('flip');
-          void el.offsetWidth; // trigger reflow
-          el.classList.add('flip');
-        }
-      });
-    }
-
-    // Smooth interpolation logic
-    let displayProgress = 0;
-    let targetProgress = 0;
-    let unityInstanceLoaded = false;
-
-    function animateProgress() {
-      if (displayProgress < targetProgress) {
-        displayProgress += 0.01;
-        if (displayProgress > targetProgress) {
-          displayProgress = targetProgress;
-        }
-        updateFlipCounter(displayProgress);
-        requestAnimationFrame(animateProgress);
+  function updateFlipCounter(progress) {
+    const count = Math.round(progress * 100);
+    const padded = count.toString().padStart(3, '0');
+    padded.split('').forEach((digit, i) => {
+      const el = document.getElementById(`digit${i + 1}`);
+      const span = el.querySelector('span');
+      if (span.textContent !== digit) {
+        span.textContent = digit;
+        el.classList.remove('flip');
+        void el.offsetWidth; // force reflow
+        el.classList.add('flip');
       }
-    }
+    });
+  }
 
-    const script = document.createElement("script");
-    script.src = loaderUrl;
-    script.onload = () => {
-      createUnityInstance(canvas, config, (progress) => {
-        targetProgress = Math.max(progress, targetProgress); // Prevent backward jumps
-        animateProgress();
-        if (progress >= 0.9 && !unityInstanceLoaded) {
-          unityInstanceLoaded = true;
-        }
-      }).then((unityInstance) => {
-        window.unityInstance = unityInstance;
-
-        // Finish to 100%
-        targetProgress = 1.0;
-        animateProgress();
-
-        setTimeout(() => {
-          flipCounter.style.display = "none";
-          container.style.display = "block";
-        }, 500);
-      }).catch((message) => {
-        alert(message);
-      });
-    };
+  const script = document.createElement("script");
+  script.src = loaderUrl;
+  script.onload = () => {
+    createUnityInstance(canvas, config, (progress) => {
+      updateFlipCounter(progress);
+    }).then((unityInstance) => {
+      window.unityInstance = unityInstance;
+      flipCounter.style.display = "none";
+      container.style.display = "block";
+    }).catch((message) => {
+      alert(message);
+    });
+  };
 
     document.body.appendChild(script);
 
