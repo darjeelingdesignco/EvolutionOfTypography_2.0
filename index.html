@@ -91,44 +91,44 @@
       });
     }
 
-    let simulatedProgress = 0;
-    let unityProgressReached = false;
-    let unityFinalized = false;
+    // Smooth interpolation logic
+    let displayProgress = 0;
+    let targetProgress = 0;
+    let unityInstanceLoaded = false;
 
-    function simulateTo90(callback) {
-      const interval = setInterval(() => {
-        simulatedProgress += 0.01; // Smooth step
-        if (simulatedProgress >= 0.9) {
-          simulatedProgress = 0.9;
-          clearInterval(interval);
-          if (callback) callback();
+    function animateProgress() {
+      if (displayProgress < targetProgress) {
+        displayProgress += 0.01;
+        if (displayProgress > targetProgress) {
+          displayProgress = targetProgress;
         }
-        updateFlipCounter(simulatedProgress);
-      }, 10); // ~1 second total (100 steps * 10ms)
+        updateFlipCounter(displayProgress);
+        requestAnimationFrame(animateProgress);
+      }
     }
 
-    var script = document.createElement("script");
+    const script = document.createElement("script");
     script.src = loaderUrl;
     script.onload = () => {
-      simulateTo90(() => {
-        // After simulated loading, start real Unity loading
-        createUnityInstance(canvas, config, (progress) => {
-          if (progress > 0.9 && !unityFinalized) {
-            unityFinalized = true;
-            updateFlipCounter(1); // Show 100%
-          }
-        }).then((unityInstance) => {
-          window.unityInstance = unityInstance;
+      createUnityInstance(canvas, config, (progress) => {
+        targetProgress = Math.max(progress, targetProgress); // Prevent backward jumps
+        animateProgress();
+        if (progress >= 0.9 && !unityInstanceLoaded) {
+          unityInstanceLoaded = true;
+        }
+      }).then((unityInstance) => {
+        window.unityInstance = unityInstance;
 
-          // Hide counter after slight delay for visual polish
-          setTimeout(() => {
-            flipCounter.style.display = "none";
-            container.style.display = "block";
-          }, 300);
+        // Finish to 100%
+        targetProgress = 1.0;
+        animateProgress();
 
-        }).catch((message) => {
-          alert(message);
-        });
+        setTimeout(() => {
+          flipCounter.style.display = "none";
+          container.style.display = "block";
+        }, 500);
+      }).catch((message) => {
+        alert(message);
       });
     };
 
