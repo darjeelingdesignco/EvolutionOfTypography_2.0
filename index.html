@@ -24,60 +24,53 @@
   </div>
 
   <script>
-    var container = document.querySelector("#unity-container");
-    var canvas = document.querySelector("#unity-canvas");
-    var warningBanner = document.querySelector("#unity-warning");
-    const flipCounter = document.querySelector("#flipCounter");
+    const container = document.querySelector("#unity-container");
+  const canvas = document.querySelector("#unity-canvas");
+  const warningBanner = document.querySelector("#unity-warning");
+  const flipCounter = document.querySelector("#flipCounter");
 
-    function unityShowBanner(msg, type) {
-      function updateBannerVisibility() {
+  function unityShowBanner(msg, type) {
+    const div = document.createElement('div');
+    div.innerHTML = msg;
+    warningBanner.appendChild(div);
+    if (type === 'error') div.style = 'background: red; padding: 10px;';
+    else {
+      if (type === 'warning') div.style = 'background: yellow; padding: 10px;';
+      setTimeout(() => {
+        warningBanner.removeChild(div);
         warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-      }
-      var div = document.createElement('div');
-      div.innerHTML = msg;
-      warningBanner.appendChild(div);
-      if (type == 'error') div.style = 'background: red; padding: 10px;';
-      else {
-        if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-        setTimeout(function () {
-          warningBanner.removeChild(div);
-          updateBannerVisibility();
-        }, 5000);
-      }
-      updateBannerVisibility();
+      }, 5000);
     }
+    warningBanner.style.display = 'block';
+  }
 
-    var buildUrl = "Build";
-    var loaderUrl = buildUrl + "/LoadingTest.loader.js";
-    var config = {
-      dataUrl: buildUrl + "/LoadingTest.data",
-      frameworkUrl: buildUrl + "/LoadingTest.framework.js",
-      codeUrl: buildUrl + "/LoadingTest.wasm",
-      streamingAssetsUrl: "StreamingAssets",
-      companyName: "darjeelingdesignco.",
-      productName: "EvolutionOfTypography",
-      productVersion: "0.1.0",
-      showBanner: unityShowBanner,
-    };
+  const buildUrl = "Build";
+  const loaderUrl = buildUrl + "/LoadingTest.loader.js";
+  const config = {
+    dataUrl: buildUrl + "/LoadingTest.data",
+    frameworkUrl: buildUrl + "/LoadingTest.framework.js",
+    codeUrl: buildUrl + "/LoadingTest.wasm",
+    streamingAssetsUrl: "StreamingAssets",
+    companyName: "darjeelingdesignco.",
+    productName: "EvolutionOfTypography",
+    productVersion: "0.1.0",
+    showBanner: unityShowBanner,
+  };
 
-    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-      // Mobile device style: fill the whole browser client area with the game canvas:
-
-      var meta = document.createElement('meta');
-      meta.name = 'viewport';
-      meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-      document.getElementsByTagName('head')[0].appendChild(meta);
-      container.className = "unity-mobile";
-      canvas.className = "unity-mobile";
-
-    } else {
-      // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-    }
+  if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+    const meta = document.createElement('meta');
+    meta.name = 'viewport';
+    meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+    document.getElementsByTagName('head')[0].appendChild(meta);
+    container.className = "unity-mobile";
+    canvas.className = "unity-mobile";
+  } else {
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+  }
 
   function updateFlipCounter(progress) {
-    const count = Math.round(progress * 100);
+    const count = Math.min(Math.round(progress * 100), 100);
     const padded = count.toString().padStart(3, '0');
     padded.split('').forEach((digit, i) => {
       const el = document.getElementById(`digit${i + 1}`);
@@ -85,23 +78,72 @@
       if (span.textContent !== digit) {
         span.textContent = digit;
         el.classList.remove('flip');
-        void el.offsetWidth; // force reflow
+        void el.offsetWidth;
         el.classList.add('flip');
       }
     });
   }
 
+  let unityProgress = 0;
+  let unityInstanceLoaded = false;
+
+  // Animate 0 → 0.5 over 2 seconds
+  function animateTo50(onComplete) {
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 0.01;
+      if (progress >= 0.5) {
+        progress = 0.5;
+        clearInterval(interval);
+        onComplete();
+      }
+      updateFlipCounter(progress);
+    }, 40); // 2 seconds
+  }
+
+  // Animate 0.5 → 1.0 over 1 second
+  function animateTo100(onComplete) {
+    let progress = 0.5;
+    const interval = setInterval(() => {
+      progress += 0.01;
+      updateFlipCounter(progress);
+      if (progress >= 1) {
+        clearInterval(interval);
+        setTimeout(onComplete, 500); // wait 0.5s after 100%
+      }
+    }, 20); // 1 second
+  }
+
+  // Hide canvas initially to block rendering
+  canvas.style.display = "none";
+
   const script = document.createElement("script");
   script.src = loaderUrl;
   script.onload = () => {
-    createUnityInstance(canvas, config, (progress) => {
-      updateFlipCounter(progress);
-    }).then((unityInstance) => {
-      window.unityInstance = unityInstance;
-      flipCounter.style.display = "none";
-      container.style.display = "block";
-    }).catch((message) => {
-      alert(message);
+    // Start Unity loading right away
+    const unityInstancePromise = createUnityInstance(canvas, config, (progress) => {
+      unityProgress = progress;
+    });
+
+    // Start loader animation in parallel
+    animateTo50(() => {
+      const waitForUnityThenFinish = () => {
+        if (unityProgress >= 1) {
+          animateTo100(() => {
+            flipCounter.style.display = "none";
+            canvas.style.display = "block"; // Show Unity canvas now
+          });
+        } else {
+          setTimeout(waitForUnityThenFinish, 100);
+        }
+      };
+      waitForUnityThenFinish();
+    });
+
+    unityInstancePromise.then(instance => {
+      window.unityInstance = instance;
+    }).catch(err => {
+      alert(err);
     });
   };
 
